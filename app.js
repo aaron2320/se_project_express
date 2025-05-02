@@ -55,10 +55,6 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-req.user = {
-  _id: "5d8b8592978f8bd833ca8133",
-};
-
 // Start the server
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
