@@ -11,7 +11,7 @@ const {
 const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
-// POST /signup - full user creation with email/password
+// POST /signup - user creation with email/password
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
@@ -37,7 +37,7 @@ const createUser = (req, res) => {
     });
 };
 
-// POST /users - public-facing test route (name + avatar only)
+// POST /users - public route for tests
 const createUserPublic = (req, res) => {
   const { name, avatar } = req.body;
 
@@ -54,7 +54,16 @@ const createUserPublic = (req, res) => {
     });
   }
 
-  return User.create({ name, avatar })
+  // Use default email/password to satisfy schema
+  const dummyEmail = `guest${Date.now()}@test.com`;
+  const dummyPassword = "$2a$10$abcdefghijklmnopqrstuv1234567890ab"; // dummy bcrypt hash
+
+  return User.create({
+    name,
+    avatar,
+    email: dummyEmail,
+    password: dummyPassword,
+  })
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
         expiresIn: "7d",
@@ -67,11 +76,14 @@ const createUserPublic = (req, res) => {
       if (err.name === "ValidationError") {
         return res.status(BAD_REQUEST).send({ message: err.message });
       }
+      if (err.code === 11000) {
+        return res.status(CONFLICT).send({ message: "User already exists" });
+      }
       res.status(SERVER_ERROR).send({ message: "Server error" });
     });
 };
 
-// GET /users - get list of users
+// GET /users
 const getUsers = (req, res) => {
   User.find({})
     .then((users) => {
@@ -87,7 +99,7 @@ const getUsers = (req, res) => {
     });
 };
 
-// GET /users/:id - get user by id
+// GET /users/:id
 const getUserById = (req, res) => {
   const { id } = req.params;
   User.findById(id)
@@ -107,7 +119,7 @@ const getUserById = (req, res) => {
     });
 };
 
-// GET /users/me - get current user from token
+// GET /users/me
 const getCurrentUser = (req, res) => {
   User.findById(req.user._id)
     .orFail()
@@ -129,7 +141,7 @@ const getCurrentUser = (req, res) => {
     });
 };
 
-// PATCH /users/me - update name and avatar
+// PATCH /users/me
 const updateUser = (req, res) => {
   const { name, avatar } = req.body;
 
@@ -157,7 +169,7 @@ const updateUser = (req, res) => {
     });
 };
 
-// POST /signin - login
+// POST /signin
 const login = (req, res) => {
   const { email, password } = req.body;
 
