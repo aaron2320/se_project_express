@@ -1,5 +1,4 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const {
   BAD_REQUEST,
   NOT_FOUND,
@@ -8,14 +7,15 @@ const {
 } = require("../utils/errors");
 
 const User = require("../models/user");
-const { JWT_SECRET } = require("../utils/config");
 
 // POST /signup
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
   return bcrypt
     .hash(password, 10)
-    .then((hash) => User.create({ name, avatar, email, password: hash }))
+    .then((hash) => {
+      return User.create({ name, avatar, email, password: hash });
+    })
     .then((user) => {
       const { password: hashedPassword, ...userWithoutPassword } =
         user.toObject();
@@ -71,8 +71,15 @@ const getUserById = (req, res) => {
     });
 };
 
+// Public test handler
+const createUserPublic = (req, res) => {
+  const { name, avatar } = req.body;
+  return res.status(201).send({ name, avatar, message: "Test user created" });
+};
+
 module.exports = {
   createUser,
   getUsers,
   getUserById,
+  createUserPublic,
 };
