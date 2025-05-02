@@ -1,4 +1,4 @@
- run-name: "Tests Project 12: ${{ github.event.head_commit.message }}"
+ name: "Tests Project 12: ${{ github.event.head_commit.message }}"
 
 on:
   push:
