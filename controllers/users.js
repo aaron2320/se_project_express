@@ -34,26 +34,24 @@ const createUser = (req, res) => {
 };
 
 // GET /users
-const getUsers = (req, res) => {
-  return User.find({})
-    .then((users) => {
-      return res.status(200).send(
+const getUsers = (req, res) =>
+  User.find({})
+    .then((users) =>
+      res.status(200).send(
         users.map((u) => {
           const { password, ...rest } = u.toObject();
           return rest;
         })
-      );
-    })
+      )
+    )
     .catch((err) => {
       console.error(err);
       return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
-};
 
 // GET /users/:id
-const getUserById = (req, res) => {
-  const { id } = req.params;
-  return User.findById(id)
+const getUserById = (req, res) =>
+  User.findById(req.params.id)
     .then((user) => {
       if (!user) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
@@ -68,13 +66,16 @@ const getUserById = (req, res) => {
       }
       return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
-};
 
 // Public test handler
-const createUserPublic = (req, res) => {
-  const { name, avatar } = req.body;
-  return res.status(201).send({ name, avatar, message: "Test user created" });
-};
+const createUserPublic = (req, res) =>
+  res
+    .status(201)
+    .send({
+      name: req.body.name,
+      avatar: req.body.avatar,
+      message: "Test user created",
+    });
 
 module.exports = {
   createUser,
