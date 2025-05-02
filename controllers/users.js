@@ -17,7 +17,8 @@ const createUser = (req, res) => {
     .hash(password, 10)
     .then((hash) => User.create({ name, avatar, email, password: hash }))
     .then((user) => {
-      const { password: hashedPassword, ...userWithoutPassword } = user.toObject();
+      const { password: hashedPassword, ...userWithoutPassword } =
+        user.toObject();
       return res.status(201).send(userWithoutPassword);
     })
     .catch((err) => {
@@ -28,23 +29,27 @@ const createUser = (req, res) => {
       if (err.code === 11000) {
         return res.status(CONFLICT).send({ message: "User already exists" });
       }
-      return res.status(SERVER_ERROR).send({ message: "An error occurred on the server" });
+      return res
+        .status(SERVER_ERROR)
+        .send({ message: "An error occurred on the server" });
     });
 };
 
 // GET /users
-const getUsers = (req, res) => User.find({})
-  .then((users) => {
-    const cleanedUsers = users.map((u) => {
-      const { password, ...rest } = u.toObject();
-      return rest;
+const getUsers = (req, res) => {
+  return User.find({})
+    .then((users) => {
+      const cleanedUsers = users.map((u) => {
+        const { password, ...rest } = u.toObject();
+        return rest;
+      });
+      return res.status(200).send(cleanedUsers);
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
-    return res.status(200).send(cleanedUsers);
-  })
-  .catch((err) => {
-    console.error(err);
-    return res.status(SERVER_ERROR).send({ message: "Server error" });
-  });
+};
 
 // GET /users/:id
 const getUserById = (req, res) => {
@@ -64,6 +69,7 @@ const getUserById = (req, res) => {
       }
       return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
+};
 
 module.exports = {
   createUser,
