@@ -15,13 +15,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// ✅ GitHub Action middleware (keep as is)
+// ✅ GitHub Action middleware
 app.use((req, res, next) => {
   req.user = { _id: "5d8b8592978f8bd833ca8133" };
   next();
 });
 
-// ✅ Use dummy signup handler in test mode, real handler otherwise
+// ✅ conditional signup route
 const signupHandler =
   process.env.NODE_ENV === "test" ? createUserPublic : createUser;
 
@@ -31,8 +31,6 @@ app.post("/signin", login);
 // Routes
 app.use("/users", usersRouter);
 app.use("/items", itemsRouter);
-
-const { PORT = 3001 } = process.env;
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/wtwr_db")
@@ -56,6 +54,4 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}`);
-});
+module.exports = app;
