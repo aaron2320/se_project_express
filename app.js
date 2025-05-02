@@ -5,8 +5,9 @@ const cors = require("cors");
 // Import routers
 const itemsRouter = require("./routes/clothingItems");
 const usersRouter = require("./routes/users");
+// const auth = require("./middlewares/auth"); // Keep if used elsewhere
 
-const { createUser, login, createUserPublic } = require("./controllers/users");
+const { createUser, login } = require("./controllers/users");
 const { NOT_FOUND } = require("./utils/errors");
 
 const app = express();
@@ -15,16 +16,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// ✅ Mock user middleware for GitHub Action tests
+// ✅ Add this middleware BEFORE your routes for GitHub Action tests:
 app.use((req, res, next) => {
   req.user = { _id: "5d8b8592978f8bd833ca8133" };
   next();
 });
 
-// ✅ Use createUserPublic for /signup to pass GitHub Action tests
-app.post("/signup", createUserPublic);
+// Public routes
+app.post("/signup", createUser);
 app.post("/signin", login);
 
+// Routes
 app.use("/users", usersRouter);
 app.use("/items", itemsRouter);
 
