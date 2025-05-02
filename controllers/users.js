@@ -10,6 +10,7 @@ const {
 const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
+// POST /signup
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
   return bcrypt
@@ -31,6 +32,7 @@ const createUser = (req, res) => {
     });
 };
 
+// GET /users
 const getUsers = (req, res) => User.find({})
   .then((users) => {
     const cleanedUsers = users.map((u) => {
@@ -44,6 +46,7 @@ const getUsers = (req, res) => User.find({})
     return res.status(SERVER_ERROR).send({ message: "Server error" });
   });
 
+// GET /users/:id
 const getUserById = (req, res) => {
   const { id } = req.params;
   return User.findById(id)
@@ -67,5 +70,3 @@ module.exports = {
   getUsers,
   getUserById,
 };
-
-
