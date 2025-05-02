@@ -12,27 +12,19 @@ const getItems = (req, res) =>
         .send({ message: "An error occurred on the server" });
     });
 
-const createItem = (req, res) => {
-  /* your implementation */
-};
-const getItem = (req, res) => {
-  /* your implementation */
-};
-const addLike = (req, res) => {
-  /* your implementation */
-};
-const removeLike = (req, res) => {
-  /* your implementation */
-};
-const deleteItem = (req, res) => {
-  /* your implementation */
-};
+// TEMPORARILY COMMENT UNUSED FUNCTIONS to pass ESLint:
+
+// const createItem = (req, res) => {};
+// const getItem = (req, res) => {};
+// const addLike = (req, res) => {};
+// const removeLike = (req, res) => {};
+// const deleteItem = (req, res) => {};
 
 module.exports = {
   getItems,
-  createItem,
-  getItem,
-  addLike,
-  removeLike,
-  deleteItem,
+  // createItem,
+  // getItem,
+  // addLike,
+  // removeLike,
+  // deleteItem,
 };
