@@ -10,46 +10,14 @@ const {
 const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
-// POST /signup
-const createUser = (req, res) => bcrypt
-  .hash(password, 10)
-  .then((hash) => User.create({ name, avatar, email, password: hash }))
-  .then((user) => {
-    const { password: hashedPassword, ...userWithoutPassword } = user.toObject();
-    return res.status(201).send(userWithoutPassword);
-  })
-  .catch((err) => {
-    console.error(err);
-    if (err.name === "ValidationError") {
-      return res.status(BAD_REQUEST).send({ message: err.message });
-    }
-    if (err.code === 11000) {
-      return res.status(CONFLICT).send({ message: "User already exists" });
-    }
-    return res.status(SERVER_ERROR).send({ message: "An error occurred on the server" });
-  });
-
-// POST /users
-const createUserPublic = (req, res) => {
-  const { name, avatar } = req.body;
-
-  if (!name || name.length < 2 || name.length > 30) {
-    return res.status(BAD_REQUEST).send({ message: "Name must be between 2 and 30 characters" });
-  }
-
-  const urlRegex = /^https?:\/\/[^\s/$.?#].[^\s]*$/;
-  if (!avatar || !urlRegex.test(avatar)) {
-    return res.status(BAD_REQUEST).send({ message: "Invalid or missing avatar URL" });
-  }
-
-  const dummyEmail = `guest${Date.now()}@test.com`;
-  const dummyPassword = "$2a$10$abcdefghijklmnopqrstuv1234567890ab";
-
-  return User.create({ name, avatar, email: dummyEmail, password: dummyPassword })
+const createUser = (req, res) => {
+  const { name, avatar, email, password } = req.body;
+  return bcrypt
+    .hash(password, 10)
+    .then((hash) => User.create({ name, avatar, email, password: hash }))
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: "7d" });
-      const { password, ...userWithoutPassword } = user.toObject();
-      return res.status(201).send({ ...userWithoutPassword, token });
+      const { password: hashedPassword, ...userWithoutPassword } = user.toObject();
+      return res.status(201).send(userWithoutPassword);
     })
     .catch((err) => {
       console.error(err);
@@ -59,11 +27,10 @@ const createUserPublic = (req, res) => {
       if (err.code === 11000) {
         return res.status(CONFLICT).send({ message: "User already exists" });
       }
-      return res.status(SERVER_ERROR).send({ message: "Server error" });
+      return res.status(SERVER_ERROR).send({ message: "An error occurred on the server" });
     });
 };
 
-// GET /users
 const getUsers = (req, res) => User.find({})
   .then((users) => {
     const cleanedUsers = users.map((u) => {
@@ -97,8 +64,8 @@ const getUserById = (req, res) => {
 
 module.exports = {
   createUser,
-  createUserPublic,
   getUsers,
   getUserById,
 };
+
 
