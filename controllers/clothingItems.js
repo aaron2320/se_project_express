@@ -6,10 +6,10 @@ const { BAD_REQUEST, NOT_FOUND, SERVER_ERROR } = require("../utils/errors");
 const getItems = async (req, res) => {
   try {
     const items = await ClothingItem.find().populate("owner").populate("likes");
-    res.status(200).json(items);
+    return res.status(200).json(items);
   } catch (error) {
     console.error("Error fetching items:", error);
-    res
+    return res
       .status(SERVER_ERROR)
       .json({ message: "An error occurred on the server" });
   }
@@ -28,10 +28,10 @@ const getItem = async (req, res) => {
     if (!item) {
       return res.status(NOT_FOUND).json({ message: "Item not found" });
     }
-    res.status(200).json(item);
+    return res.status(200).json(item);
   } catch (error) {
     console.error("Error fetching item:", error);
-    res
+    return res
       .status(SERVER_ERROR)
       .json({ message: "An error occurred on the server" });
   }
@@ -47,7 +47,7 @@ const createItem = async (req, res) => {
     const populatedItem = await ClothingItem.findById(savedItem._id)
       .populate("owner")
       .populate("likes");
-    res.status(201).json(populatedItem);
+    return res.status(201).json(populatedItem);
   } catch (error) {
     console.error("Error creating item:", error);
     if (error.name === "ValidationError") {
@@ -56,7 +56,7 @@ const createItem = async (req, res) => {
         .join(", ");
       return res.status(BAD_REQUEST).json({ message });
     }
-    res
+    return res
       .status(SERVER_ERROR)
       .json({ message: "An error occurred on the server" });
   }
@@ -73,10 +73,10 @@ const deleteItem = async (req, res) => {
     if (!item) {
       return res.status(NOT_FOUND).json({ message: "Item not found" });
     }
-    res.status(200).json({ message: "Item deleted" });
+    return res.status(200).json({ message: "Item deleted" });
   } catch (error) {
     console.error("Error deleting item:", error);
-    res
+    return res
       .status(SERVER_ERROR)
       .json({ message: "An error occurred on the server" });
   }
@@ -101,10 +101,10 @@ const addLike = async (req, res) => {
     const updatedItem = await ClothingItem.findById(itemId)
       .populate("owner")
       .populate("likes");
-    res.status(200).json(updatedItem);
+    return res.status(200).json(updatedItem);
   } catch (error) {
     console.error("Error liking item:", error);
-    res
+    return res
       .status(SERVER_ERROR)
       .json({ message: "An error occurred on the server" });
   }
@@ -127,10 +127,10 @@ const removeLike = async (req, res) => {
     const updatedItem = await ClothingItem.findById(itemId)
       .populate("owner")
       .populate("likes");
-    res.status(200).json(updatedItem);
+    return res.status(200).json(updatedItem);
   } catch (error) {
     console.error("Error unliking item:", error);
-    res
+    return res
       .status(SERVER_ERROR)
       .json({ message: "An error occurred on the server" });
   }
