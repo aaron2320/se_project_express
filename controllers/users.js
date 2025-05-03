@@ -11,10 +11,11 @@ const {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  const createUserData = { name, avatar };
-
-  if (email) {
-    createUserData.email = email;
+  // Check for required fields
+  if (!email || !password) {
+    return res
+      .status(BAD_REQUEST)
+      .send({ message: "Email and password are required" });
   }
 
   const handleError = (err) => {
@@ -36,19 +37,18 @@ const createUser = (req, res) => {
     return res.status(201).send(userWithoutPassword);
   };
 
-  if (password) {
-    bcrypt
-      .hash(password, 10)
-      .then((hash) => {
-        createUserData.password = hash;
-        return User.create(createUserData);
-      })
-      .then(sendUser)
-      .catch(handleError);
-    return;
-  }
-
-  User.create(createUserData).then(sendUser).catch(handleError);
+  bcrypt
+    .hash(password, 10)
+    .then((hash) => {
+      return User.create({
+        name,
+        avatar,
+        email,
+        password: hash,
+      });
+    })
+    .then(sendUser)
+    .catch(handleError);
 };
 
 // POST /signin
