@@ -55,8 +55,7 @@ const login = (req, res) =>
   res.status(200).send({ message: "Login successful (placeholder)" });
 
 // GET /users
-const getUsers = (req, res) => {
-  return User.find({})
+const getUsers = (req, res) => User.find({})
     .then((users) =>
       res.status(200).send(
         users.map((u) => {
@@ -69,11 +68,9 @@ const getUsers = (req, res) => {
       console.error(err);
       return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
-};
 
 // GET /users/:id
-const getUserById = (req, res) => {
-  return User.findById(req.params.id)
+const getUserById = (req, res) => User.findById(req.params.id)
     .then((user) => {
       if (!user) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
@@ -88,7 +85,6 @@ const getUserById = (req, res) => {
       }
       return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
-};
 
 module.exports = {
   createUser,
