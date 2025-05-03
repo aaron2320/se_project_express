@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const User = require("../models/user");
 const {
   BAD_REQUEST,
   NOT_FOUND,
@@ -6,11 +7,16 @@ const {
   CONFLICT,
 } = require("../utils/errors");
 
-const User = require("../models/user");
-
 // POST /signup
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(BAD_REQUEST)
+      .send({ message: "Email and password are required" });
+  }
+
   return bcrypt
     .hash(password, 10)
     .then((hash) => User.create({ name, avatar, email, password: hash }))
@@ -31,6 +37,11 @@ const createUser = (req, res) => {
         .status(SERVER_ERROR)
         .send({ message: "An error occurred on the server" });
     });
+};
+
+// POST /signin (you can expand JWT logic later if needed)
+const login = (req, res) => {
+  res.status(200).send({ message: "Login successful (placeholder)" });
 };
 
 // GET /users
@@ -67,17 +78,9 @@ const getUserById = (req, res) =>
       return res.status(SERVER_ERROR).send({ message: "Server error" });
     });
 
-// Public test handler
-const createUserPublic = (req, res) =>
-  res.status(201).send({
-    name: req.body.name,
-    avatar: req.body.avatar,
-    message: "Test user created",
-  });
-
 module.exports = {
   createUser,
+  login,
   getUsers,
   getUserById,
-  createUserPublic,
 };
