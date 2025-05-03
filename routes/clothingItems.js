@@ -1,5 +1,4 @@
 const router = require("express").Router();
-
 const {
   getItems,
   createItem,
@@ -9,16 +8,15 @@ const {
   removeLike,
 } = require("../controllers/clothingItems");
 
-// GET all clothing items
+// Inject req.user before any route handler
+router.use((req, res, next) => {
+  req.user = { _id: "5d8b8592978f8bd833ca8133" };
+  next();
+});
+
 router.get("/", getItems);
-
-// GET single clothing item by ID
 router.get("/:itemId", getItem);
-
-// DELETE a clothing item by ID
 router.delete("/:itemId", deleteItem);
-
-// POST - Create a new clothing item
 router.post("/", createItem);
 router.put("/:itemId/likes", addLike);
 router.delete("/:itemId/likes", removeLike);
