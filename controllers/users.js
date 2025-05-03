@@ -11,11 +11,11 @@ const {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  // Check for required fields
   if (!email || !password) {
-    return res
+    res
       .status(BAD_REQUEST)
       .send({ message: "Email and password are required" });
+    return; // ✅ fix: explicit return
   }
 
   const handleError = (err) => {
@@ -31,22 +31,24 @@ const createUser = (req, res) => {
       .send({ message: "An error occurred on the server" });
   };
 
-  const sendUser = (user) => {
-    const { password: hashedPassword, ...userWithoutPassword } =
-      user.toObject();
-    return res.status(201).send(userWithoutPassword);
-  };
+  const sendUser = (user) =>
+    res
+      .status(201)
+      .send(
+        (({ password: hashedPassword, ...userWithoutPassword }) =>
+          userWithoutPassword)(user.toObject())
+      ); // ✅ fix: inline return
 
   bcrypt
     .hash(password, 10)
-    .then((hash) => {
-      return User.create({
+    .then((hash) =>
+      User.create({
         name,
         avatar,
         email,
         password: hash,
-      });
-    })
+      })
+    )
     .then(sendUser)
     .catch(handleError);
 };
@@ -78,10 +80,11 @@ const getUserById = (req, res) => {
   User.findById(req.params.id)
     .then((user) => {
       if (!user) {
-        return res.status(NOT_FOUND).send({ message: "User not found" });
+        res.status(NOT_FOUND).send({ message: "User not found" });
+        return; // ✅ fix: explicit return
       }
       const { password, ...userWithoutPassword } = user.toObject();
-      return res.status(200).send(userWithoutPassword);
+      res.status(200).send(userWithoutPassword);
     })
     .catch((err) => {
       console.error(err);
