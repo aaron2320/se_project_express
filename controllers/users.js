@@ -11,32 +11,56 @@ const {
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
-  if (!email || !password) {
-    return res
-      .status(BAD_REQUEST)
-      .send({ message: "Email and password are required" });
+  const createUserData = { name, avatar };
+
+  if (email) {
+    createUserData.email = email;
   }
 
-  return bcrypt
-    .hash(password, 10)
-    .then((hash) => User.create({ name, avatar, email, password: hash }))
-    .then((user) => {
-      const { password: hashedPassword, ...userWithoutPassword } =
-        user.toObject();
-      return res.status(201).send(userWithoutPassword);
-    })
-    .catch((err) => {
-      console.error(err);
-      if (err.name === "ValidationError") {
-        return res.status(BAD_REQUEST).send({ message: err.message });
-      }
-      if (err.code === 11000) {
-        return res.status(CONFLICT).send({ message: "User already exists" });
-      }
-      return res
-        .status(SERVER_ERROR)
-        .send({ message: "An error occurred on the server" });
-    });
+  if (password) {
+    return bcrypt
+      .hash(password, 10)
+      .then((hash) => {
+        createUserData.password = hash;
+        return User.create(createUserData);
+      })
+      .then((user) => {
+        const { password: hashedPassword, ...userWithoutPassword } =
+          user.toObject();
+        return res.status(201).send(userWithoutPassword);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (err.name === "ValidationError") {
+          return res.status(BAD_REQUEST).send({ message: err.message });
+        }
+        if (err.code === 11000) {
+          return res.status(CONFLICT).send({ message: "User already exists" });
+        }
+        return res
+          .status(SERVER_ERROR)
+          .send({ message: "An error occurred on the server" });
+      });
+  } else {
+    return User.create(createUserData)
+      .then((user) => {
+        const { password: hashedPassword, ...userWithoutPassword } =
+          user.toObject();
+        return res.status(201).send(userWithoutPassword);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (err.name === "ValidationError") {
+          return res.status(BAD_REQUEST).send({ message: err.message });
+        }
+        if (err.code === 11000) {
+          return res.status(CONFLICT).send({ message: "User already exists" });
+        }
+        return res
+          .status(SERVER_ERROR)
+          .send({ message: "An error occurred on the server" });
+      });
+  }
 };
 
 // POST /signin (you can expand JWT logic later if needed)
