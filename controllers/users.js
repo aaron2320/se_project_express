@@ -17,59 +17,47 @@ const createUser = (req, res) => {
     createUserData.email = email;
   }
 
+  const handleError = (err) => {
+    console.error(err);
+    if (err.name === "ValidationError") {
+      return res.status(BAD_REQUEST).send({ message: err.message });
+    }
+    if (err.code === 11000) {
+      return res.status(CONFLICT).send({ message: "User already exists" });
+    }
+    return res
+      .status(SERVER_ERROR)
+      .send({ message: "An error occurred on the server" });
+  };
+
+  const sendUser = (user) => {
+    const { password: hashedPassword, ...userWithoutPassword } =
+      user.toObject();
+    return res.status(201).send(userWithoutPassword);
+  };
+
   if (password) {
-    return bcrypt
+    bcrypt
       .hash(password, 10)
       .then((hash) => {
         createUserData.password = hash;
         return User.create(createUserData);
       })
-      .then((user) => {
-        const { password: hashedPassword, ...userWithoutPassword } =
-          user.toObject();
-        return res.status(201).send(userWithoutPassword);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (err.name === "ValidationError") {
-          return res.status(BAD_REQUEST).send({ message: err.message });
-        }
-        if (err.code === 11000) {
-          return res.status(CONFLICT).send({ message: "User already exists" });
-        }
-        return res
-          .status(SERVER_ERROR)
-          .send({ message: "An error occurred on the server" });
-      });
-  } else {
-    return User.create(createUserData)
-      .then((user) => {
-        const { password: hashedPassword, ...userWithoutPassword } =
-          user.toObject();
-        return res.status(201).send(userWithoutPassword);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (err.name === "ValidationError") {
-          return res.status(BAD_REQUEST).send({ message: err.message });
-        }
-        if (err.code === 11000) {
-          return res.status(CONFLICT).send({ message: "User already exists" });
-        }
-        return res
-          .status(SERVER_ERROR)
-          .send({ message: "An error occurred on the server" });
-      });
+      .then(sendUser)
+      .catch(handleError);
+    return;
   }
+
+  User.create(createUserData).then(sendUser).catch(handleError);
 };
 
-// POST /signin (you can expand JWT logic later if needed)
+// POST /signin
 const login = (req, res) => {
   res.status(200).send({ message: "Login successful (placeholder)" });
 };
 
 // GET /users
-const getUsers = (req, res) =>
+const getUsers = (req, res) => {
   User.find({})
     .then((users) =>
       res.status(200).send(
@@ -81,11 +69,12 @@ const getUsers = (req, res) =>
     )
     .catch((err) => {
       console.error(err);
-      return res.status(SERVER_ERROR).send({ message: "Server error" });
+      res.status(SERVER_ERROR).send({ message: "Server error" });
     });
+};
 
 // GET /users/:id
-const getUserById = (req, res) =>
+const getUserById = (req, res) => {
   User.findById(req.params.id)
     .then((user) => {
       if (!user) {
@@ -99,8 +88,9 @@ const getUserById = (req, res) =>
       if (err.name === "CastError") {
         return res.status(BAD_REQUEST).send({ message: "Invalid user ID" });
       }
-      return res.status(SERVER_ERROR).send({ message: "Server error" });
+      res.status(SERVER_ERROR).send({ message: "Server error" });
     });
+};
 
 module.exports = {
   createUser,
