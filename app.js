@@ -12,12 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// ✅ inject mock user for testing
-app.use((req, res, next) => {
-  req.user = { _id: "5d8b8592978f8bd833ca8133" };
-  next();
-});
-
 app.use("/users", usersRouter);
 app.use("/items", itemsRouter);
 
