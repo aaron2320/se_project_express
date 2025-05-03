@@ -4,8 +4,6 @@ const cors = require("cors");
 
 const itemsRouter = require("./routes/clothingItems");
 const usersRouter = require("./routes/users");
-const signupRouter = require("./routes/signup"); // ✅ new
-
 const { NOT_FOUND } = require("./utils/errors");
 
 const app = express();
@@ -14,12 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-app.use((req, res, next) => {
-  req.user = { _id: "5d8b8592978f8bd833ca8133" };
-  next();
-});
-
-app.use("/signup", signupRouter); // ✅ new
 app.use("/users", usersRouter);
 app.use("/items", itemsRouter);
 
