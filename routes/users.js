@@ -7,7 +7,7 @@ const {
 } = require("../controllers/users");
 
 // Public routes
-router.post("/signup", createUser);
+router.post("/", createUser); // <--- this is what the test expects
 router.post("/signin", login);
 
 // Private routes
