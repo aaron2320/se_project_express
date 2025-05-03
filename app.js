@@ -20,6 +20,13 @@ app.use(express.urlencoded({ extended: true }));
 // Enable Cross-Origin Resource Sharing
 app.use(cors());
 
+// ✅ Connect to MongoDB here (required by test script)
+const { DB_URL = "mongodb://localhost:27017/wtwr_db" } = process.env;
+mongoose
+  .connect(DB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("Connected to DB"))
+  .catch((err) => console.error("Database connection error:", err));
+
 // Temporary authentication middleware (replace later with real auth)
 app.use((req, res, next) => {
   req.user = { _id: "5d8b8592978f8bd833ca8133" }; // Example user ID
@@ -36,13 +43,13 @@ app.use((req, res) => {
 });
 
 // Centralized error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack); // Log full error stack
+app.use((err, req, res) => {
+  console.error(err.stack);
   const { statusCode = 500, message } = err;
   res.status(statusCode).send({
     message: statusCode === 500 ? "An error occurred on the server" : message,
   });
 });
 
-// Export the app for use in index.js
+// Export the app
 module.exports = app;
