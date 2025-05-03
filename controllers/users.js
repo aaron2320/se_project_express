@@ -69,13 +69,11 @@ const getUserById = (req, res) =>
 
 // Public test handler
 const createUserPublic = (req, res) =>
-  res
-    .status(201)
-    .send({
-      name: req.body.name,
-      avatar: req.body.avatar,
-      message: "Test user created",
-    });
+  res.status(201).send({
+    name: req.body.name,
+    avatar: req.body.avatar,
+    message: "Test user created",
+  });
 
 module.exports = {
   createUser,

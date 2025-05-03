@@ -21,10 +21,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ conditional signup route
+// ✅ Conditional signup route
 const signupHandler =
   process.env.NODE_ENV === "test" ? createUserPublic : createUser;
-
 app.post("/signup", signupHandler);
 app.post("/signin", login);
 
