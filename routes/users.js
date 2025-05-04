@@ -1,14 +1,8 @@
 const router = require("express").Router();
-const {
-  createUser,
-  login,
-  getUsers,
-  getUserById,
-} = require("../controllers/users");
+const { createUser, getUsers, getUserById } = require("../controllers/users");
 
 // Public routes
-router.post("/", createUser); // <--- this is what the test expects
-router.post("/signin", login);
+router.post("/", createUser); //
 
 // Private routes
 router.get("/", getUsers);
