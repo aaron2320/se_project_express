@@ -1,29 +1,70 @@
+const bcrypt = require("bcryptjs");
 const User = require("../models/user");
-const { BAD_REQUEST, NOT_FOUND, SERVER_ERROR } = require("../utils/errors");
+const {
+  BAD_REQUEST,
+  NOT_FOUND,
+  SERVER_ERROR,
+  CONFLICT,
+} = require("../utils/errors");
 
-// POST /users
+// POST /signup
 const createUser = (req, res) => {
-  const { name, avatar } = req.body;
+  const { name, avatar, email, password } = req.body;
+
+  const createUserData = { name, avatar };
+
+  if (email) {
+    createUserData.email = email;
+  }
 
   const handleError = (err) => {
     console.error(err);
     if (err.name === "ValidationError") {
       return res.status(BAD_REQUEST).send({ message: err.message });
     }
+    if (err.code === 11000) {
+      return res.status(CONFLICT).send({ message: "User already exists" });
+    }
     return res
       .status(SERVER_ERROR)
       .send({ message: "An error occurred on the server" });
   };
 
-  return User.create({ name, avatar })
-    .then((user) => res.status(201).send(user))
-    .catch(handleError);
+  const sendUser = (user) => {
+    const { password: hashedPassword, ...userWithoutPassword } =
+      user.toObject();
+    return res.status(201).send(userWithoutPassword);
+  };
+
+  if (password) {
+    return bcrypt
+      .hash(password, 10)
+      .then((hash) => {
+        createUserData.password = hash;
+        return User.create(createUserData);
+      })
+      .then(sendUser)
+      .catch(handleError);
+  }
+
+  return User.create(createUserData).then(sendUser).catch(handleError);
 };
+
+// POST /signin
+const login = (req, res) =>
+  res.status(200).send({ message: "Login successful (placeholder)" });
 
 // GET /users
 const getUsers = (req, res) =>
   User.find({})
-    .then((users) => res.status(200).send(users))
+    .then((users) =>
+      res.status(200).send(
+        users.map((u) => {
+          const { password, ...rest } = u.toObject();
+          return rest;
+        })
+      )
+    )
     .catch((err) => {
       console.error(err);
       return res.status(SERVER_ERROR).send({ message: "Server error" });
@@ -36,7 +77,8 @@ const getUserById = (req, res) =>
       if (!user) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
       }
-      return res.status(200).send(user);
+      const { password, ...userWithoutPassword } = user.toObject();
+      return res.status(200).send(userWithoutPassword);
     })
     .catch((err) => {
       console.error(err);
@@ -48,6 +90,7 @@ const getUserById = (req, res) =>
 
 module.exports = {
   createUser,
+  login,
   getUsers,
   getUserById,
 };
