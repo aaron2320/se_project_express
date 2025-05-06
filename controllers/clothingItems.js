@@ -1,146 +1,146 @@
-const mongoose = require("mongoose");
+const {
+  BAD_REQUEST,
+  NOT_FOUND,
+  SERVER_ERROR,
+  FORBIDDEN,
+} = require("../utils/errors");
+
 const ClothingItem = require("../models/clothingItem");
-const { BAD_REQUEST, NOT_FOUND, SERVER_ERROR } = require("../utils/errors");
 
-// GET /items - Retrieve all clothing items
-const getItems = async (req, res) => {
-  try {
-    const items = await ClothingItem.find().populate("owner").populate("likes");
-    return res.status(200).json(items);
-  } catch (error) {
-    console.error("Error fetching items:", error);
-    return res
-      .status(SERVER_ERROR)
-      .json({ message: "An error occurred on the server" });
-  }
+// GET /items
+
+const getItems = (req, res) => {
+  ClothingItem.find({})
+    .then((items) => res.status(200).send(items))
+    .catch((err) => {
+      console.error(err);
+
+      res
+        .status(SERVER_ERROR)
+        .send({ message: "An error occurred on the server" });
+    });
 };
 
-// GET /items/:itemId - Retrieve a specific clothing item by ID
-const getItem = async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
-    }
-    const item = await ClothingItem.findById(itemId)
-      .populate("owner")
-      .populate("likes");
-    if (!item) {
-      return res.status(NOT_FOUND).json({ message: "Item not found" });
-    }
-    return res.status(200).json(item);
-  } catch (error) {
-    console.error("Error fetching item:", error);
-    return res
-      .status(SERVER_ERROR)
-      .json({ message: "An error occurred on the server" });
-  }
+// POST /items
+
+const createItem = (req, res) => {
+  const { name, imageUrl, weather } = req.body;
+  const owner = req.user._id;
+
+  ClothingItem.create({ name, imageUrl, weather, owner })
+    .then((item) => res.status(201).send(item))
+    .catch((err) => {
+      console.error(err);
+      if (err.name === "ValidationError") {
+        return res.status(BAD_REQUEST).send({ message: err.message });
+      }
+      return res
+        .status(SERVER_ERROR)
+        .send({ message: "An error occurred on the server" });
+    });
 };
 
-// POST /items - Create a new clothing item
-const createItem = async (req, res) => {
-  try {
-    const { name, weather, imageUrl } = req.body;
-    const owner = req.user._id; // From temporary auth middleware
-    const item = new ClothingItem({ name, weather, imageUrl, owner });
-    const savedItem = await item.save();
-    const populatedItem = await ClothingItem.findById(savedItem._id)
-      .populate("owner")
-      .populate("likes");
-    return res.status(201).json(populatedItem);
-  } catch (error) {
-    console.error("Error creating item:", error);
-    if (error.name === "ValidationError") {
-      const message = Object.values(error.errors)
-        .map((err) => err.message)
-        .join(", ");
-      return res.status(BAD_REQUEST).json({ message });
-    }
-    return res
-      .status(SERVER_ERROR)
-      .json({ message: "An error occurred on the server" });
-  }
+// GET /items/:itemId
+
+const getItem = (req, res) => {
+  const { itemId } = req.params;
+  ClothingItem.findById(itemId)
+    .orFail()
+    .then((item) => res.status(200).send(item))
+    .catch((err) => {
+      console.error(err);
+      if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND).send({ message: "Item not found" });
+      }
+      if (err.name === "CastError") {
+        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+      }
+      return res
+        .status(SERVER_ERROR)
+        .send({ message: "An error occurred on the server" });
+    });
 };
 
-// DELETE /items/:itemId - Delete a clothing item by ID
-const deleteItem = async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
-    }
-    const item = await ClothingItem.findByIdAndDelete(itemId);
-    if (!item) {
-      return res.status(NOT_FOUND).json({ message: "Item not found" });
-    }
-    return res.status(200).json({ message: "Item deleted" });
-  } catch (error) {
-    console.error("Error deleting item:", error);
-    return res
-      .status(SERVER_ERROR)
-      .json({ message: "An error occurred on the server" });
-  }
+// DELETE /items/:itemId
+
+const deleteItem = (req, res) => {
+  const { itemId } = req.params;
+
+  ClothingItem.findById(itemId)
+    .orFail()
+    .then((item) => {
+      if (!item.owner.equals(req.user._id)) {
+        return res.status(FORBIDDEN).send({
+          message: "You do not have permission to delete this item",
+        });
+      }
+      return item.deleteOne().then(() => {
+        res.status(200).send({ message: "Item deleted successfully" });
+      });
+    })
+    .catch((err) => {
+      console.error(err);
+      if (err.name === "DocumentNotFoundError") {
+        return res.status(NOT_FOUND).send({ message: "Item not found" });
+      }
+      if (err.name === "CastError") {
+        return res.status(BAD_REQUEST).send({ message: "Invalid item ID" });
+      }
+      return res
+        .status(SERVER_ERROR)
+        .send({ message: "An error occurred on the server" });
+    });
 };
 
-// PUT /items/:itemId/likes - Like a clothing item
-const addLike = async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    const userId = req.user._id; // From temporary auth middleware
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
-    }
-    const item = await ClothingItem.findById(itemId);
-    if (!item) {
-      return res.status(NOT_FOUND).json({ message: "Item not found" });
-    }
-    if (!item.likes.includes(userId)) {
-      item.likes.push(userId);
-      await item.save();
-    }
-    const updatedItem = await ClothingItem.findById(itemId)
-      .populate("owner")
-      .populate("likes");
-    return res.status(200).json(updatedItem);
-  } catch (error) {
-    console.error("Error liking item:", error);
-    return res
-      .status(SERVER_ERROR)
-      .json({ message: "An error occurred on the server" });
-  }
+const addLike = (req, res) => {
+  const { itemId } = req.params;
+
+  ClothingItem.findByIdAndUpdate(
+    itemId,
+    { $addToSet: { likes: req.user._id } },
+    { new: true }
+  )
+    .then((item) => {
+      if (!item) {
+        return res.status(NOT_FOUND).send({ message: "Item not found" });
+      }
+      return res.send(item);
+    })
+    .catch((err) => {
+      if (err.name === "CastError") {
+        return res.status(BAD_REQUEST).send({ message: "Invalid ID format" });
+      }
+      return res.status(SERVER_ERROR).send({ message: "Error updating likes" });
+    });
 };
 
-// DELETE /items/:itemId/likes - Unlike a clothing item
-const removeLike = async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    const userId = req.user._id; // From temporary auth middleware
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      return res.status(BAD_REQUEST).json({ message: "Invalid item ID" });
-    }
-    const item = await ClothingItem.findById(itemId);
-    if (!item) {
-      return res.status(NOT_FOUND).json({ message: "Item not found" });
-    }
-    item.likes = item.likes.filter((id) => id.toString() !== userId.toString());
-    await item.save();
-    const updatedItem = await ClothingItem.findById(itemId)
-      .populate("owner")
-      .populate("likes");
-    return res.status(200).json(updatedItem);
-  } catch (error) {
-    console.error("Error unliking item:", error);
-    return res
-      .status(SERVER_ERROR)
-      .json({ message: "An error occurred on the server" });
-  }
+const removeLike = (req, res) => {
+  const { itemId } = req.params;
+
+  ClothingItem.findByIdAndUpdate(
+    itemId,
+    { $pull: { likes: req.user._id } },
+    { new: true }
+  )
+    .then((item) => {
+      if (!item) {
+        return res.status(NOT_FOUND).send({ message: "Item not found" });
+      }
+      return res.send(item);
+    })
+    .catch((err) => {
+      if (err.name === "CastError") {
+        return res.status(BAD_REQUEST).send({ message: "Invalid ID format" });
+      }
+      return res.status(SERVER_ERROR).send({ message: "Error updating likes" });
+    });
 };
 
 module.exports = {
   getItems,
-  getItem,
   createItem,
-  deleteItem,
+  getItem,
   addLike,
   removeLike,
+  deleteItem,
 };

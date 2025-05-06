@@ -1,55 +1,61 @@
-// Import required packages
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-// Import routes
+// Importing routers
 const itemsRouter = require("./routes/clothingItems");
 const usersRouter = require("./routes/users");
 
-// Import custom error constants
+// Importing middlewares and controllers
+const auth = require("./middlewares/auth");
+const { createUser, login } = require("./controllers/users");
 const { NOT_FOUND } = require("./utils/errors");
 
-// Create the Express app
 const app = express();
 
-// Middleware to parse JSON and URL-encoded data
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Enable Cross-Origin Resource Sharing
 app.use(cors());
 
-// ✅ Connect to MongoDB here (required by test script)
-const { DB_URL = "mongodb://localhost:27017/wtwr_db" } = process.env;
-mongoose
-  .connect(DB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("Connected to DB"))
-  .catch((err) => console.error("Database connection error:", err));
+// Public routes
+app.post("/signup", createUser);
+app.post("/signin", login);
 
-// Temporary authentication middleware (replace later with real auth)
-app.use((req, res, next) => {
-  req.user = { _id: "5d8b8592978f8bd833ca8133" }; // Example user ID
-  next();
-});
-
-// Routes
+// Protected routes
 app.use("/users", usersRouter);
-app.use("/items", itemsRouter);
+app.use(
+  "/items",
+  (req, res, next) => {
+    if (req.method === "GET") {
+      return next();
+    }
+    return auth(req, res, next);
+  },
+  itemsRouter
+);
 
-// 404 handler for unknown routes
+mongoose
+  .connect("mongodb://127.0.0.1:27017/wtwr_db")
+  .then(() => {
+    console.log("Connected to DB");
+  })
+  .catch(console.error);
+
+// 404 middleware for unhandled routes
 app.use((req, res) => {
   res.status(NOT_FOUND).send({ message: "Requested resource not found" });
 });
 
-// Centralized error handler
-app.use((err, req, res) => {
-  console.error(err.stack);
+// Central error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err);
   const { statusCode = 500, message } = err;
+
   res.status(statusCode).send({
     message: statusCode === 500 ? "An error occurred on the server" : message,
   });
+  next(err);
 });
 
-// Export the app
 module.exports = app;

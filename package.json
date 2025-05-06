@@ -1,7 +1,7 @@
 {
   "name": "se_project_express",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend server for the WTWR Front End Website",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

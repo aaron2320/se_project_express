@@ -16,19 +16,14 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: false,
-    default: () => `guest${Date.now()}@test.com`,
+    required: true,
+    unique: true,
     validate: {
       validator: validator.isEmail,
       message: "You must enter a valid email",
     },
   },
-  password: {
-    type: String,
-    required: false,
-    select: false,
-    default: "$2a$10$abcdefghijklmnopqrstuv1234567890ab", // dummy bcrypt hash
-  },
+  password: { type: String, required: true, select: false },
 });
 
 userSchema.statics.findUserByCredentials = function findUserByCredentials(
