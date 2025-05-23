@@ -1,61 +1,68 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { errors } = require("celebrate");
+const errorHandler = require("./middlewares/error-handler");
+const { requestLogger, errorLogger } = require("./middlewares/logger");
 
-// Importing routers
-const itemsRouter = require("./routes/clothingItems");
-const usersRouter = require("./routes/users");
+require("dotenv").config();
+const { login, createUser } = require("./controllers/users");
+const { corsOptions } = require("./utils/config");
+const { NOT_FOUND_ERROR_MESSAGE, NotFoundError } = require("./utils/errors");
 
-// Importing middlewares and controllers
-const auth = require("./middlewares/auth");
-const { createUser, login } = require("./controllers/users");
-const { NOT_FOUND } = require("./utils/errors");
-
+const { PORT = 3001 } = process.env;
 const app = express();
 
-// Middleware
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(requestLogger);
 
-// Public routes
-app.post("/signup", createUser);
 app.post("/signin", login);
+app.post("/signup", createUser);
 
-// Protected routes
-app.use("/users", usersRouter);
-app.use(
-  "/items",
-  (req, res, next) => {
-    if (req.method === "GET") {
-      return next();
-    }
-    return auth(req, res, next);
-  },
-  itemsRouter
-);
+app.use("/users", require("./routes/users"));
+app.use("/items", require("./routes/clothingItems"));
+
+app.get("/crash-test", () => {
+  setTimeout(() => {
+    throw new Error("Server will crash now");
+  }, 0);
+});
+
+app.use((req, res, next) => next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE)));
+
+// eslint-disable-next-line no-unused-vars
+// app.use((err, req, res, next) => {
+//   console.log(err);
+
+//   if (err.statusCode) {
+//     // Set default status code for unexpected errors
+//     return res
+//       .status(err.statusCode)
+//       .send({ message: err.message, name: err.name });
+//   }
+//   return res.status(500).send({ message: "An error occurred on the server" });
+// });
+app.get("/test", (req, res) => {
+  res.json({ message: "Test route working" });
+});
+app.use(errorLogger);
+app.use(errors());
+
+app.use(errorHandler);
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/wtwr_db")
   .then(() => {
     console.log("Connected to DB");
   })
-  .catch(console.error);
-
-// 404 middleware for unhandled routes
-app.use((req, res) => {
-  res.status(NOT_FOUND).send({ message: "Requested resource not found" });
-});
-
-// Central error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err);
-  const { statusCode = 500, message } = err;
-
-  res.status(statusCode).send({
-    message: statusCode === 500 ? "An error occurred on the server" : message,
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
   });
-  next(err);
-});
 
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`App listening at ${PORT}`);
+});
