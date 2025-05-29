@@ -1,3 +1,7 @@
-const JWT_SECRET = "your-secret-key-here"; // In production, this would be an environment variable
+// config.js
 
-module.exports = { JWT_SECRET };
+const { JWT_SECRET = "super-strong-secret" } = process.env;
+
+module.exports = {
+  JWT_SECRET,
+};

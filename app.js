@@ -1,24 +1,49 @@
+require('dotenv').config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
 const { errors } = require("celebrate");
 const errorHandler = require("./middlewares/error-handler");
 const { requestLogger, errorLogger } = require("./middlewares/logger");
 
-require("dotenv").config();
 const { login, createUser } = require("./controllers/users");
 const { corsOptions } = require("./utils/config");
-const { NOT_FOUND_ERROR_MESSAGE, NotFoundError } = require("./utils/errors");
+
+// Define NotFoundError locally to avoid import issues
+const NOT_FOUND_ERROR_MESSAGE = "Resource not found";
 
 const { PORT = 3001 } = process.env;
 const app = express();
 
+// CORS setup
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
+// Middleware to block .git requests
+app.use((req, res, next) => {
+  if (req.path.includes(".git")) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+  next();
+});
+
+// Other middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
+
+// Routes
+app.get("/", (req, res) => {
+  res.send("Welcome to WTWR!");
+});
+
+app.get('/crash-test', () => {
+  setTimeout(() => {
+    throw new Error('Server will crash now');
+  }, 0);
+});
 
 app.post("/signin", login);
 app.post("/signup", createUser);
@@ -26,36 +51,28 @@ app.post("/signup", createUser);
 app.use("/users", require("./routes/users"));
 app.use("/items", require("./routes/clothingItems"));
 
-app.get("/crash-test", () => {
-  setTimeout(() => {
-    throw new Error("Server will crash now");
-  }, 0);
-});
-
-app.use((req, res, next) => next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE)));
-
-// eslint-disable-next-line no-unused-vars
-// app.use((err, req, res, next) => {
-//   console.log(err);
-
-//   if (err.statusCode) {
-//     // Set default status code for unexpected errors
-//     return res
-//       .status(err.statusCode)
-//       .send({ message: err.message, name: err.name });
-//   }
-//   return res.status(500).send({ message: "An error occurred on the server" });
-// });
 app.get("/test", (req, res) => {
   res.json({ message: "Test route working" });
 });
+
+// 404 Handler
+app.use((req, res, next) => {
+  console.log("404 Handler triggered for path:", req.path);
+  const error = new Error(NOT_FOUND_ERROR_MESSAGE);
+  error.statusCode = 404;
+  error.name = "NotFoundError";
+  next(error);
+});
+
+// Error logging and handling
 app.use(errorLogger);
 app.use(errors());
 
 app.use(errorHandler);
 
+// MongoDB connection using environment variable
 mongoose
-  .connect("mongodb://127.0.0.1:27017/wtwr_db")
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("Connected to DB");
   })
@@ -63,6 +80,25 @@ mongoose
     console.error("MongoDB connection error:", err);
   });
 
-app.listen(PORT, () => {
-  console.log(`App listening at ${PORT}`);
-});
+// Function to start server with port fallback and bind to all interfaces
+const startServer = (port) => {
+  app
+    .listen(port, '0.0.0.0', () => {
+      console.log(`App listening at ${port}`);
+    })
+    .on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.log(`Port ${port} is in use, trying ${port + 1}...`);
+        startServer(port + 1); // Try the next port (e.g., 3002)
+      } else {
+        console.error("Server error:", err);
+      }
+    });
+};
+
+// Start server with initial port and fallback
+setTimeout(() => {
+  startServer(PORT);
+}, 2000); // 2-second delay
+
+module.exports = app;

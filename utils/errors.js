@@ -1,15 +1,37 @@
-const BAD_REQUEST = 400;
-const UNAUTHORIZED = 401;
-const FORBIDDEN = 403;
-const NOT_FOUND = 404;
-const CONFLICT = 409;
-const SERVER_ERROR = 500;
+const {
+  NotFoundError,
+  BadRequestError,
+  UnauthorizedError,
+  ForbiddenError,
+  ConflictError,
+  ServerError,
+  NOT_FOUND_ERROR_MESSAGE,
+  BAD_REQUEST_ERROR_MESSAGE,
+  UNAUTHORIZED_ERROR_MESSAGE,
+  FORBIDDEN_ERROR_MESSAGE,
+  CONFLICT_ERROR_MESSAGE,
+  SERVER_ERROR_MESSAGE,
+  AUTHENTICATION_FAIL_MESSAGE,
+} = require("./customErrors");
 
 module.exports = {
-  BAD_REQUEST,
-  UNAUTHORIZED,
-  FORBIDDEN,
-  NOT_FOUND,
-  CONFLICT,
-  SERVER_ERROR,
+  BAD_REQUEST: BadRequestError,
+  UNAUTHORIZED: UnauthorizedError,
+  FORBIDDEN: ForbiddenError,
+  NOT_FOUND: NotFoundError,
+  CONFLICT: ConflictError,
+  SERVER_ERROR: ServerError,
+  NotFoundError,
+  BadRequestError,
+  UnauthorizedError,
+  ForbiddenError,
+  ConflictError,
+  ServerError,
+  NOT_FOUND_ERROR_MESSAGE,
+  BAD_REQUEST_ERROR_MESSAGE,
+  UNAUTHORIZED_ERROR_MESSAGE,
+  FORBIDDEN_ERROR_MESSAGE,
+  CONFLICT_ERROR_MESSAGE,
+  SERVER_ERROR_MESSAGE,
+  AUTHENTICATION_FAIL_MESSAGE,
 };
