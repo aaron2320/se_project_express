@@ -4,6 +4,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
+// Import Celebrate and Joi for validation
+const { celebrate, Joi } = require("celebrate");
+
 const { errors } = require("celebrate");
 const errorHandler = require("./middlewares/error-handler");
 const { requestLogger, errorLogger } = require("./middlewares/logger");
@@ -11,8 +14,8 @@ const { requestLogger, errorLogger } = require("./middlewares/logger");
 const { login, createUser } = require("./controllers/users");
 const { corsOptions } = require("./utils/config");
 
-// Define NotFoundError locally to avoid import issues
-const NOT_FOUND_ERROR_MESSAGE = "Resource not found";
+// Import NotFoundError class
+const { NotFoundError } = require("./utils/errors");
 
 const { PORT = 3001 } = process.env;
 const app = express();
@@ -32,21 +35,24 @@ app.use((req, res, next) => {
 // Other middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use(requestLogger);
 
-// Routes
-app.get("/", (req, res) => {
-  res.send("Welcome to WTWR!");
-});
+// Routes with validation
+app.post("/signin", celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(8),
+  }),
+}), login);
 
-app.get('/crash-test', () => {
-  setTimeout(() => {
-    throw new Error('Server will crash now');
-  }, 0);
-});
-
-app.post("/signin", login);
-app.post("/signup", createUser);
+app.post("/signup", celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().required().min(2).max(30),
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(8),
+  }),
+}), createUser);
 
 app.use("/users", require("./routes/users"));
 app.use("/items", require("./routes/clothingItems"));
@@ -55,13 +61,10 @@ app.get("/test", (req, res) => {
   res.json({ message: "Test route working" });
 });
 
-// 404 Handler
+// 404 Handler using NotFoundError class
 app.use((req, res, next) => {
   console.log("404 Handler triggered for path:", req.path);
-  const error = new Error(NOT_FOUND_ERROR_MESSAGE);
-  error.statusCode = 404;
-  error.name = "NotFoundError";
-  next(error);
+  next(new NotFoundError());
 });
 
 // Error logging and handling
@@ -70,9 +73,9 @@ app.use(errors());
 
 app.use(errorHandler);
 
-// MongoDB connection using environment variable
+// MongoDB connection with default URI
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/wtwr_dev")
   .then(() => {
     console.log("Connected to DB");
   })
