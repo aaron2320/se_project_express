@@ -12,7 +12,6 @@ const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
 
 // POST /users
-
 const createUser = (req, res) => {
   const { name, avatar, email, password } = req.body;
 
@@ -27,19 +26,18 @@ const createUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res.status(BAD_REQUEST).send({ message: err.message });
+        return res.status(new BAD_REQUEST().statusCode).send({ message: err.message });
       }
       if (err.code === 11000) {
-        return res.status(CONFLICT).send({ message: "User already exists" });
+        return res.status(new CONFLICT().statusCode).send({ message: "User already exists" });
       }
       return res
-        .status(SERVER_ERROR)
+        .status(new SERVER_ERROR().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };
 
 // GET /users/me
-
 const getCurrentUser = (req, res) => {
   User.findById(req.user._id)
     .orFail()
@@ -50,22 +48,23 @@ const getCurrentUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND).send({ message: "User not found" });
+        return res.status(new NOT_FOUND().statusCode).send({ message: "User not found" });
       }
       if (err.name === "CastError") {
-        return res.status(BAD_REQUEST).send({ message: "Invalid user ID" });
+        return res.status(new BAD_REQUEST().statusCode).send({ message: "Invalid user ID" });
       }
       return res
-        .status(SERVER_ERROR)
+        .status(new SERVER_ERROR().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };
 
+// POST /signin
 const login = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(BAD_REQUEST).send({
+    return res.status(new BAD_REQUEST().statusCode).send({
       message: "The password and email fields are required",
     });
   }
@@ -81,17 +80,16 @@ const login = (req, res) => {
       console.error(err);
       if (err.message === "Incorrect email or password") {
         return res
-          .status(UNAUTHORIZED)
+          .status(new UNAUTHORIZED().statusCode)
           .send({ message: "Incorrect email or password" });
       }
       return res
-        .status(SERVER_ERROR)
+        .status(new SERVER_ERROR().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };
 
-// PATCH /users/me â€” update profile
-
+// PATCH /users/me — update profile
 const updateUser = (req, res) => {
   const { name, avatar } = req.body;
 
@@ -108,13 +106,13 @@ const updateUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res.status(BAD_REQUEST).send({ message: err.message });
+        return res.status(new BAD_REQUEST().statusCode).send({ message: err.message });
       }
       if (err.name === "DocumentNotFoundError") {
-        return res.status(NOT_FOUND).send({ message: "User not found" });
+        return res.status(new NOT_FOUND().statusCode).send({ message: "User not found" });
       }
       return res
-        .status(SERVER_ERROR)
+        .status(new SERVER_ERROR().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };

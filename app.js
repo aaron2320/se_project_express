@@ -14,8 +14,8 @@ const { requestLogger, errorLogger } = require("./middlewares/logger");
 const { login, createUser } = require("./controllers/users");
 const { corsOptions } = require("./utils/config");
 
-// Import NotFoundError class
-const { NotFoundError } = require("./utils/errors");
+// Import NotFoundError class and message
+const { NotFoundError, NOT_FOUND_ERROR_MESSAGE } = require("./utils/errors");
 
 const { PORT = 3001 } = process.env;
 const app = express();
@@ -49,6 +49,7 @@ app.post("/signin", celebrate({
 app.post("/signup", celebrate({
   body: Joi.object().keys({
     name: Joi.string().required().min(2).max(30),
+    avatar: Joi.string().required().uri({ scheme: ["http", "https"] }),
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
   }),
@@ -64,7 +65,7 @@ app.get("/test", (req, res) => {
 // 404 Handler using NotFoundError class
 app.use((req, res, next) => {
   console.log("404 Handler triggered for path:", req.path);
-  next(new NotFoundError());
+  next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
 });
 
 // Error logging and handling
