@@ -15,26 +15,20 @@ const {
 } = require("../utils/errorMessages");
 
 // GET /items
-const getItems = (req, res) => {
-  Item.find({})
+const getItems = (req, res, next) => Item.find({})
     .then((items) => res.status(200).send(items))
     .catch((err) => {
       console.error(err);
-      res
-        .status(new ServerError(SERVER_ERROR_MESSAGE).statusCode)
-        .send({ message: SERVER_ERROR_MESSAGE });
+      next(new ServerError(SERVER_ERROR_MESSAGE));
     });
-};
 
 // POST /items
-const createItem = (req, res) => {
+const createItem = (req, res, next) => {
   const { name, imageUrl, weather } = req.body;
   const owner = req.user._id;
 
   if (!owner) {
-    return res
-      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
-      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
+    return next(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE));
   }
 
   return Item.create({ name, imageUrl, weather, owner })
@@ -42,37 +36,28 @@ const createItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res
-          .status(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE).statusCode)
-          .send({ message: err.message });
+        next(new BadRequestError(err.message));
+      } else {
+        next(new ServerError(SERVER_ERROR_MESSAGE));
       }
-      return res
-        .status(new ServerError(SERVER_ERROR_MESSAGE).statusCode)
-        .send({ message: SERVER_ERROR_MESSAGE });
     });
 };
 
 // GET /items/:itemId
-const getItem = (req, res) => {
+const getItem = (req, res, next) => {
   const { itemId } = req.params;
-  return Item.findById(itemId)
+  return Item.findById(itemId) // Ensure this return is present
     .orFail()
     .then((item) => res.status(200).send(item))
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return res
-          .status(new NotFoundError(NOT_FOUND_ERROR_MESSAGE).statusCode)
-          .send({ message: NOT_FOUND_ERROR_MESSAGE });
+        next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+      } else if (err.name === "CastError") {
+        next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
+      } else {
+        next(new ServerError(SERVER_ERROR_MESSAGE));
       }
-      if (err.name === "CastError") {
-        return res
-          .status(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE).statusCode)
-          .send({ message: BAD_REQUEST_ERROR_MESSAGE });
-      }
-      return res
-        .status(new ServerError(SERVER_ERROR_MESSAGE).statusCode)
-        .send({ message: SERVER_ERROR_MESSAGE });
     });
 };
 
@@ -81,30 +66,26 @@ const deleteItem = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!req.user._id) {
-    return res
-      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
-      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
+    return next(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE));
   }
 
-  return Item.findById(itemId)
+  return Item.findById(itemId) // Ensure this return is present
     .orFail()
     .then((item) => {
       if (!item.owner.equals(req.user._id)) {
-        return res
-          .status(new ForbiddenError(FORBIDDEN_ERROR_MESSAGE).statusCode)
-          .send({ message: FORBIDDEN_ERROR_MESSAGE });
+        return next(new ForbiddenError(FORBIDDEN_ERROR_MESSAGE));
       }
-      return item.deleteOne().then(() => res.status(200).send({ message: "Item deleted successfully" })); // Simplified arrow function
+      return item.deleteOne().then(() => res.status(200).send({ message: "Item deleted successfully" }));
     })
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+        next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+      } else if (err.name === "CastError") {
+        next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
+      } else {
+        next(new ServerError(SERVER_ERROR_MESSAGE));
       }
-      if (err.name === "CastError") {
-        return next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
-      }
-      return next(new ServerError(SERVER_ERROR_MESSAGE));
     });
 };
 
@@ -113,28 +94,28 @@ const addLike = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!req.user._id) {
-    return res
-      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
-      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
+    return next(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE));
   }
 
-  return Item.findByIdAndUpdate(
+  return Item.findByIdAndUpdate( // Added return to ensure consistency
     itemId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
     .then((item) => {
       if (!item) {
-        return next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+        next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+      } else {
+        res.send(item);
       }
-      return res.send(item);
     })
     .catch((err) => {
       console.error(err);
       if (err.name === "CastError") {
-        return next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
+        next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
+      } else {
+        next(new ServerError(SERVER_ERROR_MESSAGE));
       }
-      return next(new ServerError(SERVER_ERROR_MESSAGE));
     });
 };
 
@@ -143,28 +124,28 @@ const removeLike = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!req.user._id) {
-    return res
-      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
-      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
+    return next(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE));
   }
 
-  return Item.findByIdAndUpdate( // Explicit return to fix consistent-return
+  return Item.findByIdAndUpdate( // Added return to ensure consistency
     itemId,
     { $pull: { likes: req.user._id } },
     { new: true }
   )
     .then((item) => {
       if (!item) {
-        return next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+        next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
+      } else {
+        res.send(item);
       }
-      return res.send(item);
     })
     .catch((err) => {
       console.error(err);
       if (err.name === "CastError") {
-        return next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
+        next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
+      } else {
+        next(new ServerError(SERVER_ERROR_MESSAGE));
       }
-      return next(new ServerError(SERVER_ERROR_MESSAGE));
     });
 };
 
