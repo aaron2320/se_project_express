@@ -37,7 +37,7 @@ const createItem = (req, res) => {
       .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
-  Item.create({ name, imageUrl, weather, owner })
+  return Item.create({ name, imageUrl, weather, owner })
     .then((item) => res.status(201).send(item))
     .catch((err) => {
       console.error(err);
@@ -55,7 +55,7 @@ const createItem = (req, res) => {
 // GET /items/:itemId
 const getItem = (req, res) => {
   const { itemId } = req.params;
-  Item.findById(itemId)
+  return Item.findById(itemId)
     .orFail()
     .then((item) => res.status(200).send(item))
     .catch((err) => {
@@ -86,7 +86,7 @@ const deleteItem = (req, res, next) => {
       .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
-  Item.findById(itemId)
+  return Item.findById(itemId)
     .orFail()
     .then((item) => {
       if (!item.owner.equals(req.user._id)) {
@@ -94,9 +94,7 @@ const deleteItem = (req, res, next) => {
           .status(new ForbiddenError(FORBIDDEN_ERROR_MESSAGE).statusCode)
           .send({ message: FORBIDDEN_ERROR_MESSAGE });
       }
-      return item.deleteOne().then(() => {
-        res.status(200).send({ message: "Item deleted successfully" });
-      });
+      return item.deleteOne().then(() => res.status(200).send({ message: "Item deleted successfully" })); // Simplified arrow function
     })
     .catch((err) => {
       console.error(err);
@@ -120,7 +118,7 @@ const addLike = (req, res, next) => {
       .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
-  Item.findByIdAndUpdate(
+  return Item.findByIdAndUpdate(
     itemId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
@@ -150,7 +148,7 @@ const removeLike = (req, res, next) => {
       .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
-  Item.findByIdAndUpdate(
+  return Item.findByIdAndUpdate( // Explicit return to fix consistent-return
     itemId,
     { $pull: { likes: req.user._id } },
     { new: true }
