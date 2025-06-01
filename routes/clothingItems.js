@@ -15,7 +15,15 @@ const {
 router.get("/", getItems);
 
 // GET single clothing item by ID
-router.get("/:itemId", getItem);
+router.get(
+  "/:itemId",
+  celebrate({
+    params: Joi.object().keys({
+      itemId: Joi.string().hex().length(24).required(), // Validate MongoDB ObjectId
+    }),
+  }),
+  getItem
+);
 
 // POST - Create a new clothing item
 router.post(
@@ -32,12 +40,39 @@ router.post(
 );
 
 // DELETE a clothing item by ID
-router.delete("/:itemId", auth, deleteItem);
+router.delete(
+  "/:itemId",
+  auth,
+  celebrate({
+    params: Joi.object().keys({
+      itemId: Joi.string().hex().length(24).required(), // Validate MongoDB ObjectId
+    }),
+  }),
+  deleteItem
+);
 
 // Like an item
-router.put("/:itemId/likes", auth, addLike);
+router.put(
+  "/:itemId/likes",
+  auth,
+  celebrate({
+    params: Joi.object().keys({
+      itemId: Joi.string().hex().length(24).required(), // Validate MongoDB ObjectId
+    }),
+  }),
+  addLike
+);
 
 // Remove like from an item
-router.delete("/:itemId/likes", auth, removeLike);
+router.delete(
+  "/:itemId/likes",
+  auth,
+  celebrate({
+    params: Joi.object().keys({
+      itemId: Joi.string().hex().length(24).required(), // Validate MongoDB ObjectId
+    }),
+  }),
+  removeLike
+);
 
 module.exports = router;
