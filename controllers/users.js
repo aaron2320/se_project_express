@@ -1,12 +1,12 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const {
-  BAD_REQUEST,
-  NOT_FOUND,
-  SERVER_ERROR,
-  UNAUTHORIZED,
-  CONFLICT,
-} = require("../utils/errors");
+
+// Import error classes
+const BadRequestError = require("../utils/errors/BadRequestError");
+const NotFoundError = require("../utils/errors/NotFoundError");
+const ServerError = require("../utils/errors/ServerError");
+const UnauthorizedError = require("../utils/errors/UnauthorizedError");
+const ConflictError = require("../utils/errors/ConflictError");
 
 const User = require("../models/user");
 const { JWT_SECRET } = require("../utils/config");
@@ -26,13 +26,13 @@ const createUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res.status(new BAD_REQUEST().statusCode).send({ message: err.message });
+        return res.status(new BadRequestError().statusCode).send({ message: err.message });
       }
       if (err.code === 11000) {
-        return res.status(new CONFLICT().statusCode).send({ message: "User already exists" });
+        return res.status(new ConflictError().statusCode).send({ message: "User already exists" });
       }
       return res
-        .status(new SERVER_ERROR().statusCode)
+        .status(new ServerError().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };
@@ -48,13 +48,13 @@ const getCurrentUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return res.status(new NOT_FOUND().statusCode).send({ message: "User not found" });
+        return res.status(new NotFoundError().statusCode).send({ message: "User not found" });
       }
       if (err.name === "CastError") {
-        return res.status(new BAD_REQUEST().statusCode).send({ message: "Invalid user ID" });
+        return res.status(new BadRequestError().statusCode).send({ message: "Invalid user ID" });
       }
       return res
-        .status(new SERVER_ERROR().statusCode)
+        .status(new ServerError().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };
@@ -64,7 +64,7 @@ const login = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(new BAD_REQUEST().statusCode).send({
+    return res.status(new BadRequestError().statusCode).send({
       message: "The password and email fields are required",
     });
   }
@@ -80,11 +80,11 @@ const login = (req, res) => {
       console.error(err);
       if (err.message === "Incorrect email or password") {
         return res
-          .status(new UNAUTHORIZED().statusCode)
+          .status(new UnauthorizedError().statusCode)
           .send({ message: "Incorrect email or password" });
       }
       return res
-        .status(new SERVER_ERROR().statusCode)
+        .status(new ServerError().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };
@@ -106,13 +106,13 @@ const updateUser = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res.status(new BAD_REQUEST().statusCode).send({ message: err.message });
+        return res.status(new BadRequestError().statusCode).send({ message: err.message });
       }
       if (err.name === "DocumentNotFoundError") {
-        return res.status(new NOT_FOUND().statusCode).send({ message: "User not found" });
+        return res.status(new NotFoundError().statusCode).send({ message: "User not found" });
       }
       return res
-        .status(new SERVER_ERROR().statusCode)
+        .status(new ServerError().statusCode)
         .send({ message: "An error occurred on the server" });
     });
 };

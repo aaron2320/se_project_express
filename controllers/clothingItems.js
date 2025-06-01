@@ -1,10 +1,18 @@
+console.log("Loading controllers/clothingItems.js - Updated Version 2025-05-31");
+
 const Item = require("../models/clothingItem");
+
+const NotFoundError = require("../utils/errors/NotFoundError");
+const BadRequestError = require("../utils/errors/BadRequestError");
+const ServerError = require("../utils/errors/ServerError");
+const ForbiddenError = require("../utils/errors/ForbiddenError");
 const {
-  BAD_REQUEST,
-  NOT_FOUND,
-  SERVER_ERROR,
-  FORBIDDEN,
-} = require("../utils/errors");
+  NOT_FOUND_ERROR_MESSAGE,
+  BAD_REQUEST_ERROR_MESSAGE,
+  SERVER_ERROR_MESSAGE,
+  FORBIDDEN_ERROR_MESSAGE,
+  AUTHENTICATION_FAIL_MESSAGE,
+} = require("../utils/errorMessages");
 
 // GET /items
 const getItems = (req, res) => {
@@ -13,8 +21,8 @@ const getItems = (req, res) => {
     .catch((err) => {
       console.error(err);
       res
-        .status(500)
-        .send({ message: "An error occurred on the server" });
+        .status(new ServerError(SERVER_ERROR_MESSAGE).statusCode)
+        .send({ message: SERVER_ERROR_MESSAGE });
     });
 };
 
@@ -24,7 +32,9 @@ const createItem = (req, res) => {
   const owner = req.user._id;
 
   if (!owner) {
-    return res.status(401).send({ message: "Authentication required" });
+    return res
+      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
+      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
   Item.create({ name, imageUrl, weather, owner })
@@ -32,11 +42,13 @@ const createItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "ValidationError") {
-        return res.status(400).send({ message: err.message });
+        return res
+          .status(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE).statusCode)
+          .send({ message: err.message });
       }
       return res
-        .status(500)
-        .send({ message: "An error occurred on the server" });
+        .status(new ServerError(SERVER_ERROR_MESSAGE).statusCode)
+        .send({ message: SERVER_ERROR_MESSAGE });
     });
 };
 
@@ -49,32 +61,38 @@ const getItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        return res.status(404).send({ message: "Item not found" });
+        return res
+          .status(new NotFoundError(NOT_FOUND_ERROR_MESSAGE).statusCode)
+          .send({ message: NOT_FOUND_ERROR_MESSAGE });
       }
       if (err.name === "CastError") {
-        return res.status(400).send({ message: "Invalid item ID" });
+        return res
+          .status(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE).statusCode)
+          .send({ message: BAD_REQUEST_ERROR_MESSAGE });
       }
       return res
-        .status(500)
-        .send({ message: "An error occurred on the server" });
+        .status(new ServerError(SERVER_ERROR_MESSAGE).statusCode)
+        .send({ message: SERVER_ERROR_MESSAGE });
     });
 };
 
 // DELETE /items/:itemId
-const deleteItem = (req, res) => {
+const deleteItem = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!req.user._id) {
-    return res.status(401).send({ message: "Authentication required" });
+    return res
+      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
+      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
   Item.findById(itemId)
     .orFail()
     .then((item) => {
       if (!item.owner.equals(req.user._id)) {
-        return res.status(403).send({
-          message: "You do not have permission to delete this item",
-        });
+        return res
+          .status(new ForbiddenError(FORBIDDEN_ERROR_MESSAGE).statusCode)
+          .send({ message: FORBIDDEN_ERROR_MESSAGE });
       }
       return item.deleteOne().then(() => {
         res.status(200).send({ message: "Item deleted successfully" });
@@ -83,31 +101,23 @@ const deleteItem = (req, res) => {
     .catch((err) => {
       console.error(err);
       if (err.name === "DocumentNotFoundError") {
-        const error = new Error("Item not found");
-        error.statusCode = 404;
-        throw error;
+        return next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
       }
       if (err.name === "CastError") {
-        const error = new Error("Invalid item ID");
-        error.statusCode = 400;
-        throw error;
+        return next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
       }
-      const error = new Error("An error occurred on the server");
-      error.statusCode = 500;
-      throw error;
-    })
-    .catch((err) => {
-      req.error = err;
-      next(err);
+      return next(new ServerError(SERVER_ERROR_MESSAGE));
     });
 };
 
 // PUT /items/:itemId/likes
-const addLike = (req, res) => {
+const addLike = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!req.user._id) {
-    return res.status(401).send({ message: "Authentication required" });
+    return res
+      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
+      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
   Item.findByIdAndUpdate(
@@ -117,38 +127,27 @@ const addLike = (req, res) => {
   )
     .then((item) => {
       if (!item) {
-        const error = new Error("Item not found");
-        error.statusCode = 404;
-        throw error;
+        return next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
       }
       return res.send(item);
     })
     .catch((err) => {
       console.error(err);
-      if (err.statusCode) {
-        throw err;
-      }
       if (err.name === "CastError") {
-        const error = new Error("Invalid ID format");
-        error.statusCode = 400;
-        throw error;
+        return next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
       }
-      const error = new Error("Error updating likes");
-      error.statusCode = 500;
-      throw error;
-    })
-    .catch((err) => {
-      req.error = err;
-      next(err);
+      return next(new ServerError(SERVER_ERROR_MESSAGE));
     });
 };
 
 // DELETE /items/:itemId/likes
-const removeLike = (req, res) => {
+const removeLike = (req, res, next) => {
   const { itemId } = req.params;
 
   if (!req.user._id) {
-    return res.status(401).send({ message: "Authentication required" });
+    return res
+      .status(new ForbiddenError(AUTHENTICATION_FAIL_MESSAGE).statusCode)
+      .send({ message: AUTHENTICATION_FAIL_MESSAGE });
   }
 
   Item.findByIdAndUpdate(
@@ -158,29 +157,16 @@ const removeLike = (req, res) => {
   )
     .then((item) => {
       if (!item) {
-        const error = new Error("Item not found");
-        error.statusCode = 404;
-        throw error;
+        return next(new NotFoundError(NOT_FOUND_ERROR_MESSAGE));
       }
       return res.send(item);
     })
     .catch((err) => {
       console.error(err);
-      if (err.statusCode) {
-        throw err;
-      }
       if (err.name === "CastError") {
-        const error = new Error("Invalid ID format");
-        error.statusCode = 400;
-        throw error;
+        return next(new BadRequestError(BAD_REQUEST_ERROR_MESSAGE));
       }
-      const error = new Error("Error updating likes");
-      error.statusCode = 500;
-      throw error;
-    })
-    .catch((err) => {
-      req.error = err;
-      next(err);
+      return next(new ServerError(SERVER_ERROR_MESSAGE));
     });
 };
 

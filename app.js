@@ -14,15 +14,16 @@ const { requestLogger, errorLogger } = require("./middlewares/logger");
 const { login, createUser } = require("./controllers/users");
 const { corsOptions } = require("./utils/config");
 
-// Import NotFoundError class and message
-const { NotFoundError, NOT_FOUND_ERROR_MESSAGE } = require("./utils/errors");
+// Import error classes and messages
+const NotFoundError = require("./utils/errors/NotFoundError");
+const { NOT_FOUND_ERROR_MESSAGE } = require("./utils/errorMessages");
 
 const { PORT = 3001 } = process.env;
 const app = express();
 
-// CORS setup
+// Explicit CORS setup
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+app.options("*", cors(corsOptions)); // Handle preflight requests
 
 // Middleware to block .git requests
 app.use((req, res, next) => {
