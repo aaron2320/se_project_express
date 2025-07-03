@@ -30,7 +30,7 @@ app.use((req, res, next) => {
   if (req.path.includes(".git")) {
     return res.status(403).json({ message: "Access denied" });
   }
-  return next(); // Explicit return to fix consistent-return
+  return next(); // Added return to fix consistent-return error
 });
 
 // Other middleware
